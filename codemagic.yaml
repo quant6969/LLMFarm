@@ -1,0 +1,29 @@
+workflows:
+  ios-llmfarm-archive:
+    name: LLMFarm Raw Build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      vars:
+        XCODE_PROJECT: "LLMFarm.xcodeproj"
+        XCODE_SCHEME: "LLMFarm"
+      xcode: latest
+    scripts:
+      - name: Initialize submodules
+        script: |
+          git submodule update --init --recursive
+      - name: Build llama_cpu xcframework
+        script: |
+          # Это критический шаг для этого проекта, без него не соберется
+          chmod +x build-xcframework_cpu.sh
+          ./build-xcframework_cpu.sh
+      - name: Build Unsigned IPA
+        script: |
+          # Собираем без подписи
+          xcode-project build-ipa \
+            --project $XCODE_PROJECT \
+            --scheme $XCODE_SCHEME \
+            --no-codesign
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/xcarchive/*.xcarchive
